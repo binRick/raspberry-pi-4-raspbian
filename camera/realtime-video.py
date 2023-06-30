@@ -22,6 +22,7 @@ vid = cv2.VideoCapture(0)
 #vid.set(cv2.CAP_PROP_FRAME_WIDTH, 240)
 #vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 320)
 
+qty = 0
 while True:
     ret, frame = vid.read()
     resized = cv2.resize(frame, (320,240))
@@ -30,6 +31,8 @@ while True:
     image = Image.fromarray(img_color)
     image = image.rotate(180)
     disp.ShowImage(image)
+    print(f'processed frame #{qty}')
+    qty = qty + 1
 
 
 
