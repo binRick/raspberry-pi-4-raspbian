@@ -3,6 +3,6 @@ set -eou pipefail
 set -x
 sudo apt -y install  vim cmake  libturbojpeg0-dev libexif-dev libavutil-dev libswscale-dev libgraphicsmagick++1-dev \
 	libavcodec-dev libavformat-dev libavdevice-dev \
-	zsh kitty
+	zsh kitty python3-opencv
 
 sudo apt -y autoremove
