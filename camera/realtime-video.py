@@ -12,10 +12,16 @@ disp = LCD_2inch.LCD_2inch()
 disp.Init()
 disp.clear()
 
+print(f'{disp.width}x{disp.height}')
+
 image1 = Image.new("RGB", (disp.height, disp.width ), "WHITE")
 draw = ImageDraw.Draw(image1)
 
 vid = cv2.VideoCapture(0)
+
+#vid.set(cv2.CAP_PROP_FRAME_WIDTH, 240)
+#vid.set(cv2.CAP_PROP_FRAME_HEIGHT, 320)
+
 while True:
     ret, frame = vid.read()
     resized = cv2.resize(frame, (320,240))
