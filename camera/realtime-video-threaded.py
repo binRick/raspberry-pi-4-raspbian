@@ -9,7 +9,7 @@ DC = 25
 BL = 18
 bus = 0 
 device = 0
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 disp = LCD_2inch.LCD_2inch()
 disp.Init()
@@ -35,7 +35,8 @@ def display_frames():
     qty = 0
     while True:
         frame = processed_frames.get()
-        print(f'Showing Frame #{qty}')
+        if DEBUG_MODE:
+            print(f'Showing Frame #{qty}')
         disp.ShowImage(frame)
         print(f'Showed Frame #{qty}')
         qty = qty + 1
@@ -44,13 +45,15 @@ def process_frames():
     qty = 0
     while True:
         frame = raw_frames.get()
-        print(f'Processing Frame #{qty}')
+        if DEBUG_MODE:
+            print(f'Processing Frame #{qty}')
         resized = cv2.resize(frame, (disp.height,disp.width))
         img_color = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
 
         image = Image.fromarray(img_color)
         image = image.rotate(180)
-        print(f'Processed Frame #{qty}')
+        if DEBUG_MODE:
+            print(f'Processed Frame #{qty}')
         while processed_frames.qsize() > 0:
             processed_frames.get()
         processed_frames.put(image)
@@ -65,7 +68,8 @@ def collect_frames():
     print('Started Capture')
     while True:
         ret, frame = vid.read()
-        print(f'Read frame #{qty}')
+        if DEBUG_MODE:
+            print(f'Read frame #{qty}')
         while raw_frames.qsize() > 0:
             raw_frames.get()
         raw_frames.put(frame)
