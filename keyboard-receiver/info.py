@@ -3,7 +3,7 @@ import hid
 print("Opening the device")
 
 h = hid.device()
-h.open(0x1a6e, 0x089a)
+h.open(0x8089, 0x0003)
 
 print("Manufacturer: %s" % h.get_manufacturer_string())
 print("Product: %s" % h.get_product_string())
