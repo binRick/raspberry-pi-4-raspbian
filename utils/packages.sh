@@ -6,6 +6,6 @@ sudo apt -y install  vim cmake  libturbojpeg0-dev libexif-dev libavutil-dev libs
 	zsh kitty python3-opencv \
 	imagemagick  libortp-dev libortp15      libatlas-base-dev lynx sysstat npm nodejs \
 	libncurses-dev ninja-build gfortran docker.io libgif-dev libgif7 raspberrypi-kernel-headers \
-	v4l-utils
+	v4l-utils python3-usb
 
 sudo apt -y autoremove
