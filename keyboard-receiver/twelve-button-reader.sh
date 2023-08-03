@@ -1,0 +1,1 @@
+sudo ./button-reader.py 0x1189 0x8890 0x81 64

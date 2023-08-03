@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import cv2, sys
 
-CAMERA_ID = 1
+CAMERA_ID = 0
 
 if len(sys.argv) > 1:
     out = sys.argv[1]
