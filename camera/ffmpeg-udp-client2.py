@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 import numpy as np
 import cv2
-import ffmpeg  #ffmpeg-python
+import ffmpeg
+import queue
+
+q = queue.Queue()
+
 in_file='rtsp://127.0.0.1:11795/live.sdp?tcp'#?overrun_nonfatal=1?buffer_size=10000000?fifo_size=100000'
-# ffmpeg -stream_loop 5 -re -i OxfordStreet.avi -vcodec libx264 -f rtsp -rtsp_transport tcp rtsp://127.0.0.1:23000/live.sdp
 
 width = 320
 height = 240
