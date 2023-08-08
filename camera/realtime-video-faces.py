@@ -81,10 +81,12 @@ while True:
 
     img_color = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
 
+    '''
     image = Image.fromarray(img_color)
     image = image.rotate(180)
-    #cv2.imshow(image)
     #disp.ShowImage(image)
+    '''
+    cv2.imshow('faces',img_color)
     print(f'processed frame #{qty}')
     qty = qty + 1
 
