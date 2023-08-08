@@ -1,47 +1,38 @@
 #!/usr/bin/env python3
-import os, sys, time, logging, spidev as SPI, cv2, face_recognition, numpy as np
-sys.path.append('../lcd')
-from lib import LCD_2inch
+import os, sys, time, logging, cv2, face_recognition, numpy as np
+#sys.path.append('../lcd')
+#from lib import LCD_2inch
 from PIL import Image,ImageDraw
 
 RESIZE_IMAGE_FOR_FACE_RECOGNITION = True
-RST = 27
-DC = 25
-BL = 18
-bus = 0 
-device = 0 
-disp = LCD_2inch.LCD_2inch()
-disp.Init()
-disp.clear()
-
-print(f'{disp.width}x{disp.height}')
-
-image1 = Image.new("RGB", (disp.height, disp.width ), "WHITE")
-draw = ImageDraw.Draw(image1)
-
 vid = cv2.VideoCapture(0)
 
-
 print('Loading Faces.')
+rick_face = face_recognition.load_image_file("faces/rick.jpeg")
+rick = face_recognition.face_encodings(rick_face)[0]
+'''
 katie_face = face_recognition.load_image_file("faces/katie.jpeg")
 katie = face_recognition.face_encodings(katie_face)[0]
 joey_face = face_recognition.load_image_file("faces/joey.jpeg")
 joey = face_recognition.face_encodings(joey_face)[0]
-rick_face = face_recognition.load_image_file("faces/rick.jpeg")
-rick = face_recognition.face_encodings(rick_face)[0]
 lily_face = face_recognition.load_image_file("faces/lily.jpeg")
 lily = face_recognition.face_encodings(lily_face)[0]
+'''
 known_face_encodings = [
   rick,
+'''
   katie,
   joey,
   lily,
+'''
 ]
 known_face_names = [
   "Rick",
+'''
   "Katie",
   "Joey",
   "Lily",
+'''
 ]
 print('Loaded Faces.')
 
@@ -66,12 +57,18 @@ while True:
     face_encodings = face_recognition.face_encodings(rgb_small_frame, locs)
 
     for face_encoding in face_encodings:
-      matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+      try:
+        matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+      except:
+        pass
       name = "Unknown"
-      face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
-      best_match_index = np.argmin(face_distances)
-      if matches[best_match_index]:
-        name = known_face_names[best_match_index]
+      try:
+        face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+        best_match_index = np.argmin(face_distances)
+        if matches[best_match_index]:
+          name = known_face_names[best_match_index]
+      except:
+        pass
       face_names.append(name)
 
     if RESIZE_IMAGE_FOR_FACE_RECOGNITION:
@@ -86,14 +83,15 @@ while True:
 
     image = Image.fromarray(img_color)
     image = image.rotate(180)
-    disp.ShowImage(image)
+    #cv2.imshow(image)
+    #disp.ShowImage(image)
     print(f'processed frame #{qty}')
     qty = qty + 1
 
 
 
 vid.release()
-disp.module_exit()
+#disp.module_exit()
 sys.exit(0)
 
 
