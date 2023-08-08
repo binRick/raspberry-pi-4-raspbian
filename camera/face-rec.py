@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-import face_recognition, cv2, numpy as np, os, sys
+import face_recognition, cv2, numpy as np, os, sys, numpy
+
+WIN_X = 1200
+WIN_Y = 500
 
 video_capture = cv2.VideoCapture(0)
 rick_image = face_recognition.load_image_file("faces/rick.jpeg")
@@ -25,7 +28,7 @@ while True:
 
     if process_this_frame:
         small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-        rgb_small_frame = small_frame[:, :, ::-1]
+        rgb_small_frame = numpy.ascontiguousarray(small_frame[:, :, ::-1])
         
         face_locations = face_recognition.face_locations(rgb_small_frame)
         try:
@@ -64,6 +67,9 @@ while True:
         cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
     print(f'Processed Frame #{qty}')
+
+    cv2.namedWindow("Video", cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("Video", WIN_X, WIN_Y)
     cv2.imshow('Video', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
