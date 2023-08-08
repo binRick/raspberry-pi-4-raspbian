@@ -18,8 +18,10 @@ face_encodings = []
 face_names = []
 process_this_frame = True
 
+qty = 0
 while True:
     ret, frame = video_capture.read()
+    qty = qty + 1
 
     if process_this_frame:
         small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
@@ -61,6 +63,7 @@ while True:
         font = cv2.FONT_HERSHEY_DUPLEX
         cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
+    print(f'Processed Frame #{qty}')
     cv2.imshow('Video', frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
