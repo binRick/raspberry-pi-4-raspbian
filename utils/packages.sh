@@ -7,6 +7,9 @@ sudo apt -y install espeak vim cmake  libturbojpeg0-dev  \
 	libsixel-dev graphicsmagick libdeflate-dev \
 	libgraphicsmagick1-dev \
 	python3-usb python3-tk python3-dev \
-	bazel-bootstrap
+	bazel-bootstrap graphicsmagick++    \
+	portaudio19-dev python3-pyaudio
+
+
 
 sudo apt -y autoremove

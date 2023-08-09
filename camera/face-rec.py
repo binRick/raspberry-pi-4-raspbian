@@ -1,8 +1,38 @@
 #!/usr/bin/env python3
-import face_recognition, cv2, numpy as np, os, sys, numpy, pyautogui
+import face_recognition, cv2, numpy as np, os, sys, numpy, pyautogui, argparse
+from PIL import Image
+from pycoral.adapters import classify
+from pycoral.adapters import common
+from pycoral.utils.dataset import read_label_file
+from pycoral.utils.edgetpu import make_interpreter
 
 WIN_X = 640
 WIN_Y = 480
+
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument(
+  '-m', '--model', required=False, help='File path of .tflite file.')
+parser.add_argument(
+  '-i', '--input', required=False, help='Image to be classified.')
+parser.add_argument(
+  '-l', '--labels', help='File path of labels file.')
+parser.add_argument(
+  '-k', '--top_k', type=int, default=1,
+  help='Max number of classification results')
+parser.add_argument(
+  '-t', '--threshold', type=float, default=0.0,
+  help='Classification score threshold')
+parser.add_argument(
+  '-c', '--count', type=int, default=5,
+  help='Number of times to run inference')
+parser.add_argument(
+  '-a', '--input_mean', type=float, default=128.0,
+  help='Mean value for input normalization')
+parser.add_argument(
+  '-s', '--input_std', type=float, default=128.0,
+  help='STD value for input normalization')
+args = parser.parse_args()
+
 
 def get_info():
     w, h = pyautogui.size()
