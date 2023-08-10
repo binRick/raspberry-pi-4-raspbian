@@ -10,6 +10,7 @@ WIN_X = 640
 WIN_Y = 480
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser.add_argument('-c', '--cam', type=int, help='USB camera ID for video streaming', default=0)
 parser.add_argument(
   '-m', '--model', required=False, help='File path of .tflite file.')
 parser.add_argument(
@@ -22,15 +23,6 @@ parser.add_argument(
 parser.add_argument(
   '-t', '--threshold', type=float, default=0.0,
   help='Classification score threshold')
-parser.add_argument(
-  '-c', '--count', type=int, default=5,
-  help='Number of times to run inference')
-parser.add_argument(
-  '-a', '--input_mean', type=float, default=128.0,
-  help='Mean value for input normalization')
-parser.add_argument(
-  '-s', '--input_std', type=float, default=128.0,
-  help='STD value for input normalization')
 args = parser.parse_args()
 
 
