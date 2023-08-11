@@ -80,7 +80,6 @@ known_face_names = [
 face_locations = []
 face_encodings = []
 face_names = []
-process_this_frame = True
 
 def blue_image(image):
     face_locations = face_recognition.face_locations(image, model="cnn")
@@ -123,43 +122,48 @@ def add_makeup(image):
 
 
 qty = 0
+window_created = False
+process_frame_interval = 5
+face_scale_factor = 4
+
+def find_faces_in_frame(frame):
+  small_frame = cv2.resize(frame, (0, 0), fx=1/face_scale_factor, fy=1/face_scale_factor)
+  rgb_small_frame = numpy.ascontiguousarray(small_frame[:, :, ::-1])
+        
+  face_locations = face_recognition.face_locations(rgb_small_frame)
+  try:
+    face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+  except Exception as e:
+    print(f'exception: {e}')
+    return None, None
+
+  face_names = []
+  for face_encoding in face_encodings:
+    matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
+    name = "Unknown"
+
+    face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
+    best_match_index = np.argmin(face_distances)
+    if matches[best_match_index]:
+      name = known_face_names[best_match_index]
+
+    face_names.append(name)
+  return face_locations, face_names
+
 while True:
     ret, frame = video_capture.read()
     qty += 1
 
-    if process_this_frame:
-        small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
-        rgb_small_frame = numpy.ascontiguousarray(small_frame[:, :, ::-1])
-        
-        face_locations = face_recognition.face_locations(rgb_small_frame)
-        try:
-          face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
-        except Exception as e:
-          print(f'exception: {e}')
-          continue
-
-        face_names = []
-        for face_encoding in face_encodings:
-            # See if the face is a match for the known face(s)
-            matches = face_recognition.compare_faces(known_face_encodings, face_encoding)
-            name = "Unknown"
-
-            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding)
-            best_match_index = np.argmin(face_distances)
-            if matches[best_match_index]:
-                name = known_face_names[best_match_index]
-
-            face_names.append(name)
-
-    process_this_frame = not process_this_frame
+    if (qty % process_frame_interval) == 0:
+      face_locations, face_names = find_faces_in_frame(frame)
 
 
     for (top, right, bottom, left), name in zip(face_locations, face_names):
-        print('found face')
-        top *= 4
-        right *= 4
-        bottom *= 4
-        left *= 4
+        print(f'found {name}')
+        top *= face_scale_factor
+        right *= face_scale_factor
+        bottom *= face_scale_factor
+        left *= face_scale_factor
 
         cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
 
@@ -167,15 +171,15 @@ while True:
         font = cv2.FONT_HERSHEY_DUPLEX
         cv2.putText(frame, name, (left + 6, bottom - 6), font, 1.0, (255, 255, 255), 1)
 
-    cv2.namedWindow("Video", cv2.WINDOW_AUTOSIZE)
-    cv2.moveWindow("Video", VIDEO_POSITION_X, VIDEO_POSITION_Y)
+    if not window_created:
+      cv2.namedWindow("Video", cv2.WINDOW_AUTOSIZE)
+      cv2.moveWindow("Video", VIDEO_POSITION_X, VIDEO_POSITION_Y)
+      window_created = True
 
-    #cv2.resizeWindow("Video", WIN_X, WIN_Y)
     cv2.imshow('Video', frame)
-    #(x,y,w,h) = cv2.getWindowImageRect('Video')
-    #print(x,y,w,h)
 
-    print(f"#{qty} @ %dFPS" % (video_capture.get(5)))
+    if (qty % 10) == 0:
+      print(f"#{qty} @ %dFPS" % (video_capture.get(5)))
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
