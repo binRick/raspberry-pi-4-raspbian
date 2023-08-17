@@ -9,5 +9,7 @@ else
 fi
 script="$1"
 img="$2"
-timg -pk "$img"
+#timg -pk "$img"
+clear
+for x in $(seq 1 25); do echo; done
 exec python3 $script $img
