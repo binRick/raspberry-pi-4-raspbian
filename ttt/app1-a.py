@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import cv2, sys, os, numpy as np, pyautogui
+import cv2, sys, os, numpy as np, pyautogui, json
 font = cv2.FONT_HERSHEY_COMPLEX
 image_path = sys.argv[1]
 image = cv2.imread(image_path)
@@ -101,11 +101,15 @@ titles = []
 draw_contours = False
 board_contour = None
 board = {
-  'area':0,'contour':None,'permiter':0,
-  'center':{'x':0,'y':0}, 
-  'position':{'x':0,'y':0},
-  'size':{'w':0,'h':0},
-  'index':None
+  'contour':None,
+  'properties': {
+    'area':0,
+    'permiter':0,
+    'center':{'x':0,'y':0}, 
+    'position':{'x':0,'y':0},
+    'size':{'w':0,'h':0},
+    'index':None
+  }
 }
 for i, c in enumerate(contours):
   titles.append(f'#{i}')
@@ -117,17 +121,17 @@ for i, c in enumerate(contours):
   approx = cv2.approxPolyDP(c, 0.009 * cv2.arcLength(c, True), True)
   is_circle = cv2.isContourConvex(approx)
   c_x,c_y,c_w,c_h = cv2.boundingRect(c)
-  if not is_circle and area > board['area']:
-    board['index'] = i
+  if not is_circle and area > board['properties']['area']:
+    board['properties']['index'] = i
     board['contour'] = c
-    board['permiter'] = perim
-    board['area'] = area
-    board['center']['x'] = cX
-    board['center']['y'] = cY
-    board['position']['x'] = c_x
-    board['position']['y'] = c_y
-    board['size']['w'] = c_w
-    board['size']['h'] = c_h
+    board['properties']['permiter'] = int(perim)
+    board['properties']['area'] = int(area)
+    board['properties']['center']['x'] = cX
+    board['properties']['center']['y'] = cY
+    board['properties']['position']['x'] = c_x
+    board['properties']['position']['y'] = c_y
+    board['properties']['size']['w'] = c_w
+    board['properties']['size']['h'] = c_h
 
 
   cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
@@ -157,24 +161,51 @@ for i, c in enumerate(contours):
     cv2.imshow(titles[i], cs[i])
 
 
-if board['area'] > 0:
+if board['properties']['area'] > 0:
+  board['properties']['left_line'] = {
+    'position': {
+      'x': board['properties']['position']['x'] + (board['properties']['size']['w']/3)
+    }
+  }
+  blanks[0] = cv2.rectangle(blanks[0], 
+	(int(board['properties']['position']['x']),int(board['properties']['position']['y'])), 
+	(
+	  int(board['properties']['position']['x']+board['properties']['size']['w']),
+	  int(board['properties']['position']['y']+board['properties']['size']['h'])
+	),
+	(255,0,0),
+	2
+  )
+
+#  '''
+  cv2.line(blanks[0],
+#	(int(board['properties']['left_line']['position']['x']),0),
+#	(255,255),
+	(int(board['properties']['left_line']['position']['x']),50),
+#	(board['properties']['left_line']['position']['x'],100),
+	(int(board['properties']['left_line']['position']['x']),int(blanks[0].shape[1])),
+	(255,0,0),
+	5
+  )
+#  '''
   print(f'Found board!')
-  print(f'\t|area={board["area"]}|permiter:{board["permiter"]}|')
-  print(f'\t|center:{board["center"]["x"]}x{board["center"]["y"]}|index:{board["index"]}|')
-  print(f'\t|position:{board["position"]["x"]}x{board["position"]["y"]}|')
-  print(f'\t|size:{board["size"]["w"]}x{board["size"]["h"]}|')
+  print(json.dumps(board['properties'], indent=1))
+#  print(f'\t|area={board["area"]}|permiter:{board["permiter"]}|')
+#  print(f'\t|center:{board["center"]["x"]}x{board["center"]["y"]}|index:{board["index"]}|')
+#  print(f'\t|position:{board["position"]["x"]}x{board["position"]["y"]}|')
+#  print(f'\t|size:{board["size"]["w"]}x{board["size"]["h"]}|')
 
 #process_image_contours(blanks[0], contours)
 cv2.namedWindow('Contours', cv2.WINDOW_AUTOSIZE)
 cv2.imshow('Contours', blanks[0])
-cv2.imshow('Lines', blanks[1])
-cv2.imshow('Lines 2', blanks[2])
+#cv2.imshow('Lines', blanks[1])
+#cv2.imshow('Lines 2', blanks[2])
 cv2.moveWindow('Contours', o_w, 0)
 (c_x,c_y,c_w,c_h) = cv2.getWindowImageRect('Contours')
 print(f'Contours: {c_x}x{c_y}@{c_w}x{c_h}')
-cv2.moveWindow('Lines', c_x, 0)
-(l_x,l_y,l_w,l_h) = cv2.getWindowImageRect('Lines')
-cv2.moveWindow('Lines 2', l_x, 0)
+#cv2.moveWindow('Lines', c_x, 0)
+#(l_x,l_y,l_w,l_h) = cv2.getWindowImageRect('Lines')
+#cv2.moveWindow('Lines 2', l_x, 0)
 
 
 cv2.waitKey(0)
