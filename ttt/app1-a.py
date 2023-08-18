@@ -121,7 +121,7 @@ for i, c in enumerate(contours):
   approx = cv2.approxPolyDP(c, 0.009 * cv2.arcLength(c, True), True)
   is_circle = cv2.isContourConvex(approx)
   c_x,c_y,c_w,c_h = cv2.boundingRect(c)
-  if not is_circle and area > board['properties']['area']:
+  if area > board['properties']['area']:
     board['properties']['index'] = i
     board['contour'] = c
     board['properties']['permiter'] = int(perim)
