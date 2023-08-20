@@ -1,4 +1,9 @@
 
+#I=images/board_0.jpg    # blank
+#I=images/board_1.jpg    # 
+#I=images/board_2.jpg    # 
+#I=images/board_3.jpg    # 
+
 #I=images/board4.jpg	# crooked
 			#  OX 
 			#    O
@@ -16,10 +21,10 @@
 			#    O
 			#  OX 
 
-I=images/board2.jpg	#  OX 
+#I=images/board2.jpg	#  OX 
 			#    O
 			#  OX 
 
-#I=images/board1.jpg 	# empty board
+I=images/board1.jpg 	# empty board
 
 ./app.sh app1-a.py $I
