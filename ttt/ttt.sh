@@ -9,7 +9,7 @@
 			#    O
 			#  OX 
 
-#I=images/board6.jpg	#    O
+I=images/board6.jpg	#    O
 			#  XXX
 			#  O
 
@@ -21,10 +21,10 @@
 			#    O
 			#  OX 
 
-#I=images/board2.jpg	#  OX 
+I=images/board2.jpg	#  OX 
 			#    O
 			#  OX 
 
-I=images/board1.jpg 	# empty board
+#I=images/board1.jpg 	# empty board
 
 ./app.sh app1-a.py $I

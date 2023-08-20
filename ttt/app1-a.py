@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-import cv2, sys, os, numpy as np, pyautogui, json
+import cv2, sys, os, numpy as np, pyautogui, json, pygetwindow as gw, subprocess
 ''''''''''''
 font = cv2.FONT_HERSHEY_COMPLEX
 canny_min = 25
-canny_max = 275
+canny_max = 200
 LINES_MIN_LENGTH = 25
 LINES_MAX_GAP = 30
 ''''''''''''
@@ -12,7 +12,10 @@ image_path = sys.argv[1]
 image = cv2.imread(image_path)
 win_w, win_h = pyautogui.size()
 
-print(f'Monitor Size: {win_w}x{win_h}')
+active_window = gw.getActiveWindow().strip()
+activate_cmd = f'osascript -e \'tell application "{active_window}" to activate\''
+
+print(f'Monitor Size: {win_w}x{win_h}px')
 
 def process_image_contours(image, c):
   for index, cnt in enumerate(c):
@@ -47,7 +50,7 @@ def process_image_contours(image, c):
         i = i + 1
 
 
-print('Original Dimensions : ',image.shape)
+print(f'Original Image Dimensions : {image.shape[0]}x{image.shape[1]}px')
 
 
 scale_percent = 60 # percent of original size
@@ -156,6 +159,12 @@ def find_board_contour_index(contours):
     raise Exception('Unable to find board contour!')
   return id
 
+def get_contour_center(c):
+  M = cv2.moments(c)
+  cX = int(M["m10"] / M["m00"])
+  cY = int(M["m01"] / M["m00"])
+  return cX, cY
+
 board_index = find_board_contour_index(contours)
 bottom_y = find_bottom_of_contours(contours)
 top_y = find_top_of_contours(contours)
@@ -167,8 +176,6 @@ print(f'[Board] #{board_index}|Bottom:{bottom_y}|Right:{right_x}|Left:{left_x}|T
 
 cs = []
 titles = []
-#cv2.namedWindow("Video", cv2.WINDOW_AUTOSIZE)
-#(x,y,w,h) = cv2.getWindowImageRect('Video')
 board_contour = None
 board = {
   'contour':None,
@@ -181,6 +188,8 @@ board = {
     'index':None
   }
 }
+chars_x = []
+chars_o = []
 for i, c in enumerate(contours):
   titles.append(f'#{i}')
   text_size = .8
@@ -190,7 +199,9 @@ for i, c in enumerate(contours):
   M = cv2.moments(c)
   cX = int(M["m10"] / M["m00"])
   cY = int(M["m01"] / M["m00"])
-  approx = cv2.approxPolyDP(c, 0.009 * cv2.arcLength(c, True), True)
+  poly_dp_val = 0.009
+  poly_dp_val = 0.059
+  approx = cv2.approxPolyDP(c, poly_dp_val * cv2.arcLength(c, True), True)
   is_circle = cv2.isContourConvex(approx)
   c_x,c_y,c_w,c_h = cv2.boundingRect(c)
   if i == board_index:
@@ -210,17 +221,39 @@ for i, c in enumerate(contours):
   elif is_circle:
     text_color = (0,0,255)
 
-  cv2.circle(blanks[0], (cX, cY), 7, (255, 255, 255), -1)
-  cv2.putText(blanks[0], titles[i], (cX - 20, cY - 20),cv2.FONT_HERSHEY_SIMPLEX, text_size, text_color, 2)
+  if i != board_index:
+   if is_circle:
+    chars_o.append(i)
+   else:
+    chars_x.append(i)
 
-  print(f'\t{titles[i]}|area:{area}|permiter:{perim}|cX:{cX}|cY:{cY}|circle? {is_circle}|')
-  print(f'\t\tc_x:{c_x}|c_y:{c_y}|c_w:{c_w}|c_h:{c_h}')
+  if i != board_index:
+    cv2.circle(blanks[0], (cX, cY), 7, (255, 255, 255), -1)
+    cv2.putText(blanks[0], titles[i], (cX - 20, cY - 20),cv2.FONT_HERSHEY_SIMPLEX, text_size, text_color, 2)
+
+    print(f'\t{titles[i]}|area:{area}|permiter:{perim}|cX:{cX}|cY:{cY}|circle? {is_circle}|')
+    print(f'\t\tc_x:{c_x}|c_y:{c_y}|c_w:{c_w}|c_h:{c_h}')
 
 
 if board['properties']['area'] > 0:
   board['properties']['left_line'] = {
     'position': {
       'x': board['properties']['position']['x'] + (board['properties']['size']['w']/3)
+    }
+  }
+  board['properties']['right_line'] = {
+    'position': {
+      'x': board['properties']['position']['x'] + (board['properties']['size']['w']/3*2)
+    }
+  }
+  board['properties']['top_line'] = {
+    'position': {
+      'y': board['properties']['position']['y'] + (board['properties']['size']['h']/3)
+    }
+  }
+  board['properties']['bottom_line'] = {
+    'position': {
+      'y': board['properties']['position']['y'] + (board['properties']['size']['h']/3*2)
     }
   }
   blanks[0] = cv2.rectangle(blanks[0], 
@@ -232,8 +265,26 @@ if board['properties']['area'] > 0:
 
 #  '''
   cv2.line(blanks[0],
+	(left_x,int(board['properties']['top_line']['position']['y'])),
+	(right_x,int(board['properties']['top_line']['position']['y'])),
+	(255,0,0),
+	5
+  )
+  cv2.line(blanks[0],
+	(left_x,int(board['properties']['bottom_line']['position']['y'])),
+	(right_x,int(board['properties']['bottom_line']['position']['y'])),
+	(255,0,0),
+	5
+  )
+  cv2.line(blanks[0],
 	(int(board['properties']['left_line']['position']['x']),top_y),
 	(int(board['properties']['left_line']['position']['x']),bottom_y),
+	(255,0,0),
+	5
+  )
+  cv2.line(blanks[0],
+	(int(board['properties']['right_line']['position']['x']),top_y),
+	(int(board['properties']['right_line']['position']['x']),bottom_y),
 	(255,0,0),
 	5
   )
@@ -245,21 +296,67 @@ if board['properties']['area'] > 0:
 #  print(f'\t|position:{board["position"]["x"]}x{board["position"]["y"]}|')
 #  print(f'\t|size:{board["size"]["w"]}x{board["size"]["h"]}|')
 
+def get_position(x, y):
+  top_line_y = int(board['properties']['top_line']['position']['y'])
+  bottom_line_y = int(board['properties']['bottom_line']['position']['y'])
+  left_line_x = int(board['properties']['left_line']['position']['x'])
+  right_line_x = int(board['properties']['right_line']['position']['x'])
+  print(f'\tComparing {x}x{y} to {left_line_x}/{right_line_x}@{top_line_y}/{bottom_line_y}')
+  if x < left_line_x and y < top_line_y:
+    return 0
+  if x > left_line_x and y < top_line_y and x < right_line_x:
+    return 1
+  if x > right_line_x and y < top_line_y:
+    return 2
+  if x < left_line_x and y > top_line_y and y < bottom_line_y:
+    return 3
+  if x > left_line_x and y > top_line_y and y < bottom_line_y and x < right_line_x:
+    return 4
+  if x > right_line_x and y > top_line_y and y < bottom_line_y:
+    return 5
+  if x < left_line_x and y > bottom_line_y:
+    return 6
+  if x > left_line_x and x < right_line_x and y > bottom_line_y:
+    return 7
+  if x > right_line_x and y > bottom_line_y:
+    return 8
+
+#  raise Exception(f'Unable to find {x}x{y}!')
+  return -1
+
+positions = [
+  [' ',' ',' '],
+  [' ',' ',' '],
+  [' ',' ',' '],
+]
+
+for i in chars_x:
+  x, y = get_contour_center(contours[i])
+  p = get_position(x,y)
+  print(f'X: #{i} @ {x}x{y}|p={p}')
+
+for i in chars_o:
+  x, y = get_contour_center(contours[i])
+  p = get_position(x,y)
+  print(f'O: #{i} @ {x}x{y}|p={p}')
+
+print(positions)
+
+
 #process_image_contours(blanks[0], contours)
 cv2.namedWindow('Contours', cv2.WINDOW_AUTOSIZE)
 cv2.namedWindow('Board', cv2.WINDOW_AUTOSIZE)
 cv2.imshow('Contours', blanks[0])
 cv2.imshow('Board', blanks[1])
-#cv2.imshow('Lines', blanks[1])
-#cv2.imshow('Lines 2', blanks[2])
+cv2.imshow('Cells', blanks[2])
 cv2.moveWindow('Contours', o_w, 0)
 cv2.moveWindow('Board', 0, o_h)
 (c_x,c_y,c_w,c_h) = cv2.getWindowImageRect('Contours')
-cv2.moveWindow('Original', 0, 0)
 print(f'Contours: {c_x}x{c_y}@{c_w}x{c_h}')
-#cv2.moveWindow('Lines', c_x, 0)
-#(l_x,l_y,l_w,l_h) = cv2.getWindowImageRect('Lines')
-#cv2.moveWindow('Lines 2', l_x, 0)
+(b_x,b_y,b_w,b_h) = cv2.getWindowImageRect('Board')
+cv2.moveWindow('Cells', b_w, o_h)
+cv2.moveWindow('Original', 0, 0)
+subprocess.call(activate_cmd, shell=True)
 
 
 cv2.waitKey(0)
