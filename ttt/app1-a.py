@@ -358,6 +358,10 @@ cv2.moveWindow('Cells', b_w, o_h)
 cv2.moveWindow('Original', 0, 0)
 subprocess.call(activate_cmd, shell=True)
 
+print("___|_X_|___", "___|___|___", "   |   |   ", sep='\n')
+
 
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+
+
