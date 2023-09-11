@@ -15,6 +15,40 @@ win_w, win_h = pyautogui.size()
 active_window = gw.getActiveWindow().strip()
 activate_cmd = f'osascript -e \'tell application "{active_window}" to activate\''
 
+
+print("___|_X_|___", "___|___|___", "   |   |   ", sep='\n')
+
+def draw_board(t, m, b):
+  if t[0] == ' ':
+    t[0] = '_'
+  if t[1] == ' ':
+    t[1] = '_'
+  if t[2] == ' ':
+    t[2] = '_'
+  if m[0] == ' ':
+    m[0] = '_'
+  if m[1] == ' ':
+    m[1] = '_'
+  if m[2] == ' ':
+    m[2] = '_'
+  T = f'_{t[0]}_|_{t[1]}_|_{t[2]}_'
+  M = f'_{m[0]}_|_{m[1]}_|_{m[2]}_'
+  B = f' {b[0]} | {b[1]} | {b[2]} '
+  print(T, M, B, sep='\n')
+
+draw_board(
+ [' ',' ',' '],
+ [' ',' ',' '],
+ [' ',' ',' '],
+)
+draw_board(
+ ['X','X','X'],
+ [' ',' ','O'],
+ [' ','O',' '],
+)
+
+#sys.exit(0)
+
 print(f'Monitor Size: {win_w}x{win_h}px')
 
 def process_image_contours(image, c):
@@ -358,7 +392,6 @@ cv2.moveWindow('Cells', b_w, o_h)
 cv2.moveWindow('Original', 0, 0)
 subprocess.call(activate_cmd, shell=True)
 
-print("___|_X_|___", "___|___|___", "   |   |   ", sep='\n')
 
 
 cv2.waitKey(0)

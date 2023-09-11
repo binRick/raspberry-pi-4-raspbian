@@ -9,7 +9,7 @@
 			#    O
 			#  OX 
 
-I=images/board6.jpg	#    O
+#I=images/board6.jpg	#    O
 			#  XXX
 			#  O
 
