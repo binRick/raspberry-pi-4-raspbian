@@ -51,9 +51,9 @@ def main():
             my_tank.sonar_servo_right()
         elif(char == "u"):
             dist = my_tank.get_sonar_distance()
-            print(f'dist: {dist}')
-        elif(char == "t"):
-            exit(1)
+            print(f'distance [{my_tank.SONAR_POS}]: {dist}')
+        elif(char == "q"):
+            exit(0)
 main()
 if __name__ == "main":
     main()

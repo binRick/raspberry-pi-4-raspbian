@@ -1,3 +1,4 @@
 *.swp
 */.v
 */*/__pycache__
+camera/*.png

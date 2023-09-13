@@ -31,14 +31,22 @@ class TankLib:
     SONAR_PIN = 23
     gimbal_y_pin = 9
     gimbal_x_pin = 11
+    GIMBAL_X_POS = 45
+    GIMBAL_Y_POS = 20
+    GIMBAL_X_POS_MIN = 0
+    GIMBAL_X_POS_MAX = 180
+    GIMBAL_Y_POS_MIN = 0
+    GIMBAL_Y_POS_MAX = 180
 
     # sonar pins
     SONAR_ECHO = 0
     SONAR_TRIG = 1
 
     # sonar left/right sweep len
-    SONAR_SWEEP = 10
-    SONAR_POS = 90
+    SONAR_SWEEP = 5
+    SONAR_POS = 45
+    SONAR_POS_MIN = 0
+    SONAR_POS_MAX = 90
 
 
     """
@@ -136,24 +144,11 @@ class TankLib:
         self.pwm_g_led.start(0)
         self.pwm_b_led.start(0)
 
-    def get_sonar_distance2(self):
-      GPIO.output(self.SONAR_TRIG, True)
-      time.sleep(0.00001)
-      GPIO.output(self.SONAR_TRIG, False)
-      StartTime = time.time()
-      StopTime = time.time()
-      print('1')
-      while GPIO.input(self.SONAR_ECHO) == 0:
-        StartTime = time.time()
-      print('2')
-      while GPIO.input(self.SONAR_ECHO) == 1:
-        StopTime = time.time()
-      print('3')
-      TimeElapsed = StopTime - StartTime
-      distance = (TimeElapsed * 34300) / 2
-      print(f'distance: {distance}')
-      print('ok')
-      return distance
+        # center sonar
+        #self.sonar_servo.ChangeDutyCycle(2.5+10 * self.SONAR_POS/100)
+        self.set_sonar_servo(self.SONAR_POS)
+        self.gimbal_y(self.GIMBAL_Y_POS)
+        self.gimbal_x(self.GIMBAL_X_POS)
 
     def get_sonar_distance(self):
       GPIO.output(self.SONAR_TRIG, GPIO.LOW)
@@ -170,26 +165,27 @@ class TankLib:
       while GPIO.input(self.SONAR_ECHO):
         t5 = time.time()
         dur = t5 - t1
-        print(f'dur: {dur}')
-        #print(t5)
         if(t5 - t1) > 0.03 :
           return -2
       t2 = time.time()
-      time.sleep(0.01)
-      print("distance is %d " % (((t2 - t1)* 340 / 2) * 100))
-      return ((t2 - t1)* 340 / 2) * 100
+      #time.sleep(0.01)
+      return int(((t2 - t1)* 340 / 2) * 100)
+
+    def set_sonar_servo(self, pos):
+        print(f'sonar pos: {pos}')
+        self.sonar_servo.ChangeDutyCycle(2.5+10 * pos/100)
 
     def sonar_servo_left(self):
         self.SONAR_POS = self.SONAR_POS + self.SONAR_SWEEP
-        if self.SONAR_POS > 180:
-            self.SONAR_POS = 180
-        self.sonar_servo.ChangeDutyCycle(2.5+10 * self.SONAR_POS/100)
+        if self.SONAR_POS > self.SONAR_POS_MAX:
+            self.SONAR_POS = self.SONAR_POS_MAX
+        self.set_sonar_servo(self.SONAR_POS)
 
     def sonar_servo_right(self):
         self.SONAR_POS = self.SONAR_POS - self.SONAR_SWEEP
-        if self.SONAR_POS < 0:
-            self.SONAR_POS = 0
-        self.sonar_servo.ChangeDutyCycle(2.5+10 * self.SONAR_POS/100)
+        if self.SONAR_POS < self.SONAR_POS_MIN:
+            self.SONAR_POS = self.SONAR_POS_MIN
+        self.set_sonar_servo(self.SONAR_POS)
 
     #Move forward
     def forward(self, active_time:float):
@@ -272,34 +268,40 @@ class TankLib:
         self.gimbal_x_angle += amount
         print(f"Changing gimbal to {self.gimbal_x_angle}")
         #Contraints
-        if(self.gimbal_x_angle < 0):
-            self.gimbal_x_angle = 0
-        if(self.gimbal_x_angle > 180):
-            self.gimbal_x_angle = 180
+        if(self.gimbal_x_angle < self.GIMBAL_X_POS_MIN):
+            self.gimbal_x_angle = self.GIMBAL_X_POS_MIN
+        if(self.gimbal_x_angle > self.GIMBAL_X_POS_MAX):
+            self.gimbal_x_angle = self.GIMBAL_X_POS_MAX
         
-        for i in range(1):   
+        for i in range(1):
             self.pwm_gimbal_x.ChangeDutyCycle(2.5 + 10 * self.gimbal_x_angle/180)
-            time.sleep(0.02)							
-            
-        self.pwm_gimbal_x.ChangeDutyCycle(0)	
+            time.sleep(0.02)
+        self.pwm_gimbal_x.ChangeDutyCycle(0)            
 
     #The servo rotates up or down **BY THE SPECIFIED AMOUNT**
     #If you wish to actively stabilize the servo you can call
     #this function with 0 as the amount.
+    def set_gimbal_x(self,pos):
+        print(f"Changing camera x to {pos}")
+        self.pwm_gimbal_x.ChangeDutyCycle(2.5+10 * pos/100)
+
+    def set_gimbal_y(self,pos):
+        print(f"Changing camera y to {pos}")
+        self.pwm_gimbal_y.ChangeDutyCycle(2.5+10 * pos/100)
+
     def gimbal_y(self, amount):  
         self.gimbal_y_angle += amount
         print(f"Changing gimbal to {self.gimbal_y_angle}")
         #Contraints
-        if(self.gimbal_y_angle < 0):
-            self.gimbal_y_angle = 0
-        if(self.gimbal_y_angle > 180):
-            self.gimbal_y_angle = 180
-        
-        for i in range(1):  
+        if(self.gimbal_y_angle < self.GIMBAL_Y_POS_MIN):
+            self.gimbal_y_angle = self.GIMBAL_Y_POS_MIN
+        if(self.gimbal_y_angle > self.GIMBAL_Y_POS_MAX):
+            self.gimbal_y_angle = self.GIMBAL_Y_POS_MAX
+        for i in range(1):
             self.pwm_gimbal_y.ChangeDutyCycle(2.5 + 10 * self.gimbal_y_angle/180)
-            time.sleep(0.02)							
+            time.sleep(0.02)
+        self.pwm_gimbal_y.ChangeDutyCycle(0)            
         
-        self.pwm_gimbal_y.ChangeDutyCycle(0)	
 
     #HONK
     def beep(self, active_time:float):
