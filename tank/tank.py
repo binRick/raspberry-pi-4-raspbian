@@ -16,9 +16,11 @@ def getch():
     return ch
 
 def main():
+    print(f'Initializing Tank')
     my_tank = TankLib()
-    my_tank.gimbal_x_angle = 30
-    my_tank.gimbal_y_angle = 30
+    print(f'Initialized Tank')
+    my_tank.gimbal_x_angle = 40
+    my_tank.gimbal_y_angle = 0
     my_tank.gimbal_y(0)
     my_tank.gimbal_x(0)
     while True:
@@ -52,6 +54,17 @@ def main():
         elif(char == "u"):
             dist = my_tank.get_sonar_distance()
             print(f'distance [{my_tank.SONAR_POS}]: {dist}')
+        elif(char == "o"):
+            print(f'stopping polling distance')
+            my_tank.stop_poll_sonar_distance()
+            print(f'stopped polling distance')
+        elif(char == "O"):
+            my_tank.stop_sonar_sweep()
+        elif(char == "p"):
+            print(f'polling distance')
+            my_tank.poll_sonar_distance()
+        elif(char == "P"):
+            my_tank.start_sonar_sweep()
         elif(char == "q"):
             exit(0)
 main()

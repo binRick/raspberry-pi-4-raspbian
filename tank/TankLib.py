@@ -1,8 +1,7 @@
-import RPi.GPIO as GPIO, time, typing, os, sys, json
-from threading import Thread
+import RPi.GPIO as GPIO, time, typing, os, sys, json, threading, term
+from TankMath import sampler as sonar_sampler
 
-class TankLib:
-    #Motor pin definition
+class TankLib():
     IN1 = 20
     IN2 = 21
     IN3 = 19
@@ -13,21 +12,12 @@ class TankLib:
 
     speed_control = 33
     spin_speed = 50
-    #How much we should slow down our spin speed 0..1
     spin_dampen = 1
-    """#Button pin definition
-    button_Pin = 8
 
-    #Ultrasonic pin definition
-    echo_pin = 0
-    trigger_pin = 1
-    """
-    #RGB LED pin definition
     led_r_pin = 22
     led_g_pin = 27
     led_b_pin = 24 
     
-    #Servo pin definition
     SONAR_PIN = 23
     gimbal_y_pin = 9
     gimbal_x_pin = 11
@@ -38,16 +28,22 @@ class TankLib:
     GIMBAL_Y_POS_MIN = 0
     GIMBAL_Y_POS_MAX = 180
 
-    # sonar pins
     SONAR_ECHO = 0
     SONAR_TRIG = 1
 
-    # sonar left/right sweep len
     SONAR_SWEEP = 5
-    SONAR_POS = 45
+    SONAR_START_POS = 45
+    SONAR_SWEEP_ENABLED = False
+    SONAR_SWEEP_INTERVAL = 0.2
+    SONAR_POS = SONAR_START_POS
     SONAR_POS_MIN = 0
     SONAR_POS_MAX = 90
-
+    SONAR_MAX_DISTANCE_CM = 300
+    SONAR_POLL_INTERVAL = 0.1
+    SONAR_POLL_THREAD = None
+    SONAR_POLL_THREAD_ENABLED = None
+    SONAR_POLL_SAMPLER = sonar_sampler(int(1/SONAR_POLL_INTERVAL*5), SONAR_MAX_DISTANCE_CM)
+    SONAR_DISTANCES = {}
 
     """
     #Infrared obstacle avoidance pin definition
@@ -68,15 +64,9 @@ class TankLib:
 
     LdrSensorLeft = 7
     LdrSensorRight = 6"""
-    #Motor pin initialized to output mode
-    #Button pin initialized to input mode
-    #Ultrasonic,RGB tri-color lamp, servo pin initialization
-    #Infrared obstacle avoidance pin initialization
     def __init__(self):
         GPIO.setwarnings(False)
 
-        #Start angle for gimbal x/y of camera
-        #Servos have been calibrated where 90 is 'neutral'
         self.gimbal_x_angle = 90
         self.gimbal_y_angle = 90
 
@@ -96,11 +86,8 @@ class TankLib:
         #Camera gimbal servo pins
         GPIO.setup(self.gimbal_x_pin, GPIO.OUT)
         GPIO.setup(self.gimbal_y_pin, GPIO.OUT)
-        """GPIO.setup(outfire_pin,GPIO.OUT)
-        GPIO.setup(echo_pin,GPIO.IN)
-        GPIO.setup(trigger_pin,GPIO.OUT)
-        """
         self.led_on = False
+
         GPIO.setup(self.led_r_pin, GPIO.OUT)
         GPIO.setup(self.led_g_pin, GPIO.OUT)
         GPIO.setup(self.led_b_pin, GPIO.OUT)
@@ -145,10 +132,62 @@ class TankLib:
         self.pwm_b_led.start(0)
 
         # center sonar
-        #self.sonar_servo.ChangeDutyCycle(2.5+10 * self.SONAR_POS/100)
-        self.set_sonar_servo(self.SONAR_POS)
+        self.set_sonar_servo()
         self.gimbal_y(self.GIMBAL_Y_POS)
         self.gimbal_x(self.GIMBAL_X_POS)
+
+    def start_sonar_sweep(self):
+      self.poll_sonar_distance()
+      SONAR_SWEEP_ENABLED = True
+      while self.SONAR_SWEEP_ENABLED:
+          my_tank.sonar_servo_left()
+          time.sleep(self.SONAR_SWEEP_INTERVAL)
+
+    def stop_sonar_sweep(self):
+      SONAR_SWEEP_ENABLED = False
+      self.stop_poll_sonar_distance()
+
+    def stop_poll_sonar_distance(self):
+     if self.SONAR_POLL_THREAD is not None:
+       self.SONAR_POLL_THREAD_ENABLED = False
+     term.saveCursor()
+     term.clearLine()
+     term.restoreCursor()
+
+    def poll_sonar_distance(self):
+        self.SONAR_POLL_THREAD_ENABLED = True
+        if self.SONAR_POLL_THREAD is None:
+            self.SONAR_POLL_THREAD = threading.Thread(target=self.__poll_sonar_distance, daemon=True)
+            self.SONAR_POLL_THREAD.start()
+
+    def __poll_sonar_distance(self):
+        while self.SONAR_POLL_THREAD_ENABLED:
+            size = os.get_terminal_size()
+            d = self.get_sonar_distance()
+            msg = f"Sonar Distance: {d}cm @{self.get_sonar_servo()} | {len(self.SONAR_DISTANCES)} Distances"
+            y = 0
+            x = size.columns-len(msg)-10
+            term.saveCursor()
+            term.clearLine()
+            term.clearLineToPos()
+            term.pos(y, x)
+            term.writeLine(msg, term.green, term.reverse)
+            
+            '''
+            msg1 = f'{len(self.SONAR_DISTANCES)} Distances'
+            term.down(value=1)
+            term.clearLine()
+            term.clearLineToPos()
+            term.pos(1, x)
+            term.writeLine(msg1, term.green, term.reverse)
+            '''
+
+
+            term.restoreCursor()
+
+            time.sleep(self.SONAR_POLL_INTERVAL)
+        self.SONAR_POLL_THREAD = None
+
 
     def get_sonar_distance(self):
       GPIO.output(self.SONAR_TRIG, GPIO.LOW)
@@ -168,26 +207,32 @@ class TankLib:
         if(t5 - t1) > 0.03 :
           return -2
       t2 = time.time()
-      #time.sleep(0.01)
-      return int(((t2 - t1)* 340 / 2) * 100)
+      d = int(((t2 - t1)* 340 / 2) * 100)
+      self.SONAR_DISTANCES[self.get_sonar_servo()] = d
+      return d
 
-    def set_sonar_servo(self, pos):
-        print(f'sonar pos: {pos}')
-        self.sonar_servo.ChangeDutyCycle(2.5+10 * pos/100)
+    def get_sonar_servo(self):
+        return self.SONAR_POS
+
+    def set_sonar_servo(self):
+        print(f'sonar pos: {self.SONAR_POS}')
+        for i in range(1):
+            self.sonar_servo.ChangeDutyCycle(2.5+10 * self.SONAR_POS/100)
+            time.sleep(0.02)
+        self.sonar_servo.ChangeDutyCycle(0)            
 
     def sonar_servo_left(self):
         self.SONAR_POS = self.SONAR_POS + self.SONAR_SWEEP
         if self.SONAR_POS > self.SONAR_POS_MAX:
             self.SONAR_POS = self.SONAR_POS_MAX
-        self.set_sonar_servo(self.SONAR_POS)
+        self.set_sonar_servo()
 
     def sonar_servo_right(self):
         self.SONAR_POS = self.SONAR_POS - self.SONAR_SWEEP
         if self.SONAR_POS < self.SONAR_POS_MIN:
             self.SONAR_POS = self.SONAR_POS_MIN
-        self.set_sonar_servo(self.SONAR_POS)
+        self.set_sonar_servo()
 
-    #Move forward
     def forward(self, active_time:float):
         GPIO.output(self.IN1, GPIO.HIGH)
         GPIO.output(self.IN2, GPIO.LOW)
@@ -198,7 +243,6 @@ class TankLib:
         time.sleep(active_time)
         self.brake()
 
-    #Move Backward
     def reverse(self, active_time:float):
         GPIO.output(self.IN1, GPIO.LOW)
         GPIO.output(self.IN2, GPIO.HIGH)
@@ -210,7 +254,6 @@ class TankLib:
         self.brake()
 
             
-    #Skid left (Doesn't work well)
     def left(self, active_time:float):
         GPIO.output(self.IN1, GPIO.LOW)
         GPIO.output(self.IN2, GPIO.LOW)
@@ -221,7 +264,6 @@ class TankLib:
         time.sleep(active_time)
         self.brake()
 
-    #Skid right (Doesn't work well)
     def right(self, active_time:float):
         GPIO.output(self.IN1, GPIO.HIGH)
         GPIO.output(self.IN2, GPIO.LOW)
@@ -232,7 +274,6 @@ class TankLib:
         time.sleep(active_time)
         self.brake()
             
-    #Spin to the left
     def spin_left(self, active_time:float):
         GPIO.output(self.IN1, GPIO.LOW)
         GPIO.output(self.IN2, GPIO.HIGH)
@@ -243,7 +284,6 @@ class TankLib:
         time.sleep(active_time)
         self.brake()
 
-    #Spin to the right
     def spin_right(self, active_time:float):
         GPIO.output(self.IN1, GPIO.HIGH)
         GPIO.output(self.IN2, GPIO.LOW)
@@ -254,16 +294,12 @@ class TankLib:
         time.sleep(active_time)
         self.brake()
 
-    #Stop
     def brake(self):
         GPIO.output(self.IN1, GPIO.LOW)
         GPIO.output(self.IN2, GPIO.LOW)
         GPIO.output(self.IN3, GPIO.LOW)
         GPIO.output(self.IN4, GPIO.LOW)
 
-    #The servo rotates left or right **BY THE SPECIFIED AMOUNT**
-    #If you wish to actively stabilize the servo you can call
-    #this function with 0 as the amount.
     def gimbal_x(self, amount): 
         self.gimbal_x_angle += amount
         print(f"Changing gimbal to {self.gimbal_x_angle}")
@@ -278,9 +314,6 @@ class TankLib:
             time.sleep(0.02)
         self.pwm_gimbal_x.ChangeDutyCycle(0)            
 
-    #The servo rotates up or down **BY THE SPECIFIED AMOUNT**
-    #If you wish to actively stabilize the servo you can call
-    #this function with 0 as the amount.
     def set_gimbal_x(self,pos):
         print(f"Changing camera x to {pos}")
         self.pwm_gimbal_x.ChangeDutyCycle(2.5+10 * pos/100)
@@ -302,8 +335,6 @@ class TankLib:
             time.sleep(0.02)
         self.pwm_gimbal_y.ChangeDutyCycle(0)            
         
-
-    #HONK
     def beep(self, active_time:float):
         GPIO.output(self.buzzer_pin, GPIO.LOW)
         time.sleep(active_time)
