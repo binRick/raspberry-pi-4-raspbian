@@ -1,7 +1,2 @@
-Package       Version
-------------- -------
-pip           20.3.4
-pkg-resources 0.0.0
-py-term       0.7
-RPi.GPIO      0.7.1
-setuptools    44.1.1
+RPi.GPIO
+pyserial
