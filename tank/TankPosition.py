@@ -32,7 +32,7 @@ class TankPosition():
                         if data[1].startswith('Heading '):
                             self.HEADING = data[1].split(' ')[2]
                             #print(f'heading: {self.HEADING}')
-                time.sleep(0.5)
+                time.sleep(0.05)
         else:
             print('serial not open')
 
@@ -59,4 +59,4 @@ if __name__ == '__main__':
         i = p.info()
         if i:
             print(json.dumps(i))
-        time.sleep(1)
+        time.sleep(0.20)

@@ -15,7 +15,7 @@ class TankGPS():
         attempt = 0
         while attempt < self.RETRIES and not self.valid_packet(p):
             if attempt > 1:
-                print(f'Attempt #{attempt+1}/{retries}')
+                print(f'Attempt #{attempt+1}/{self.RETRIES}')
             p = gpsd.get_current()
             if not self.valid_packet(p):
                 time.sleep(1)
