@@ -138,8 +138,8 @@ class TankLib():
         self.gimbal_x(self.GIMBAL_X_POS)
 
         # start positioning routine
-        self.tank_position = TankPosition()
-        self.position = self.tank_position.info()
+        # self.tank_position = TankPosition()
+        # self.position = self.tank_position.info()
         
     def start_sonar_sweep(self):
       self.poll_sonar_distance()

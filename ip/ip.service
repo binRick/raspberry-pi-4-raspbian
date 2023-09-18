@@ -1,0 +1,9 @@
+[Unit]
+Description=IP Service
+
+[Service]
+ExecStart=~pi/repos/raspberry-pi-4-raspbian/ip/ip.sh
+Type=Simple
+
+[Install]
+WantedBy=multi-user.target
