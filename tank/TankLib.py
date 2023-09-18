@@ -1,5 +1,6 @@
 import RPi.GPIO as GPIO, time, typing, os, sys, json, threading, term
 from TankMath import sampler as sonar_sampler
+from TankPosition import TankPosition
 
 class TankLib():
     IN1 = 20
@@ -136,6 +137,10 @@ class TankLib():
         self.gimbal_y(self.GIMBAL_Y_POS)
         self.gimbal_x(self.GIMBAL_X_POS)
 
+        # start positioning routine
+        self.tank_position = TankPosition()
+        self.position = self.tank_position.info()
+        
     def start_sonar_sweep(self):
       self.poll_sonar_distance()
       SONAR_SWEEP_ENABLED = True
