@@ -2,7 +2,11 @@
 import serial, os, sys, json, time, threading
 from datetime import datetime
 
-__TANK_POSITION_SERIAL_PORT__ = '/dev/ttyACM1'
+if not 'ARDUINO_DEVICE' in os.environ.keys():
+    __TANK_POSITION_SERIAL_PORT__ = '/dev/ttyACM0'
+else:
+    __TANK_POSITION_SERIAL_PORT__ = os.environ['ARDUINO_DEVICE'] 
+
 __TANK_POSITION_SERIAL_PORT_BAUD_RATE__ = 9600
 
 class TankPosition():

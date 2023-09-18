@@ -8,6 +8,7 @@ while :; do
 		echo "Reloading IP"
 	else
 		echo "IP $IP OK"
+		sleep 60
 	fi
 	sleep 1
 done
