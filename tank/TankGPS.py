@@ -10,14 +10,14 @@ class TankGPS():
     def valid_packet(self, packet):
         return(packet != None and packet.mode == 3)
 
-    def info():
+    def info(self):
         p = None
         attempt = 0
-        while attempt < retries and not valid_packet(p):
+        while attempt < self.RETRIES and not self.valid_packet(p):
             if attempt > 1:
                 print(f'Attempt #{attempt+1}/{retries}')
             p = gpsd.get_current()
-            if not valid_packet(p):
+            if not self.valid_packet(p):
                 time.sleep(1)
             attempt = attempt + 1
 

@@ -1,6 +1,7 @@
 import RPi.GPIO as GPIO, time, typing, os, sys, json, threading, term
 from TankMath import sampler as sonar_sampler
 from TankPosition import TankPosition
+from TankGPS import TankGPS
 
 class TankLib():
     IN1 = 20

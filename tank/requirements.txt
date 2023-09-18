@@ -1,2 +1,4 @@
 RPi.GPIO
 pyserial
+py-term
+gpsd-py3
