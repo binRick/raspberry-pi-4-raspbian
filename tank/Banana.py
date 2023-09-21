@@ -12,7 +12,7 @@ class BananaDetector(object):
     input_mean = 128.0
     input_std = 128.0
     count = 5
-    top_k = 1
+    top_k = 10
     threshold = 0.0
     is_banana_threshold = 0.20
     _labels = 'labels/mobilenet_v1_0.75_192_quant_edgetpu.txt'
@@ -48,9 +48,11 @@ class BananaDetector(object):
 
         print('-------RESULTS--------')
         for c in classes:
-            print('%s: %.5f' % (self.labels.get(c.id, c.id), c.score))
-            if c.score >= self.is_banana_threshold:
+            l = self.labels.get(c.id, c.id)
+            print('%s: %.5f' % (l, c.score))
+            if l == 'banana':
                 return True
+            #if c.score >= self.is_banana_threshold:
         return False
 
 
@@ -59,7 +61,8 @@ def find_webcam_bananas(bd):
     qty = 0
     while True:
         ret, frame = vid.read()
-        image = cv2.resize(frame, (320,240))
+        #image = cv2.resize(frame, (320,240))
+        image = frame
         tf = './.tmp.png'
         cv2.imwrite(tf, image)
         is_banana = bd.is_banana_file(tf)
