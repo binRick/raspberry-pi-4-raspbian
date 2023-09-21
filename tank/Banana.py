@@ -6,14 +6,48 @@ from pycoral.utils.dataset import read_label_file
 from pycoral.utils.edgetpu import make_interpreter
 
 vid = cv2.VideoCapture(0)
-
-def find_bananas():
-    qty = 0
-    while True:
+'''
         ret, frame = vid.read()
-        resized = cv2.resize(frame, (320,240))
+        image = cv2.resize(frame, (320,240))
         print(f'processed frame #{qty}')
         qty = qty + 1
+'''
+
+def find_bananas(args, interpreter, images, labels):
+    qty = 0
+    size = common.input_size(interpreter)
+    for index, img in enumerate(images):
+        if not os.path.isfile(img):
+            continue
+        print(f'processing {img}')
+        image = Image.open(img).convert('RGB').resize(size, Image.LANCZOS)
+
+        params = common.input_details(interpreter, 'quantization_parameters')
+        scale = params['scales']
+        zero_point = params['zero_points']
+        mean = args.input_mean
+        std = args.input_std
+        if abs(scale * std - 1) < 1e-5 and abs(mean - zero_point) < 1e-5:
+            common.set_input(interpreter, image)
+        else:
+            normalized_input = (np.asarray(image) - mean) / (std * scale) + zero_point
+            np.clip(normalized_input, 0, 255, out=normalized_input)
+            common.set_input(interpreter, normalized_input.astype(np.uint8))
+
+        print('----INFERENCE TIME----')
+        if index == 0:
+              print('Note: The first inference on Edge TPU is slow because it includes',
+                    'loading the model into Edge TPU memory.')
+        for _ in range(args.count):
+            start = time.perf_counter()
+            interpreter.invoke()
+            inference_time = time.perf_counter() - start
+            classes = classify.get_classes(interpreter, args.top_k, args.threshold)
+            print('%.1fms' % (inference_time * 1000))
+
+        print('-------RESULTS--------')
+        for c in classes:
+            print('%s: %.5f' % (labels.get(c.id, c.id), c.score))
 
 
 def main():
@@ -52,8 +86,14 @@ def main():
     raise ValueError('Only support uint8 input type.')
 
   size = common.input_size(interpreter)
+  images = []
+  if ',' in args.input:
+      images = args.input.split(',')
+  else:
+      images.append(args.input)
+  print(f'images: {images}')
 
-  find_bananas()
+  find_bananas(args, interpreter, images, labels)
   '''
 
   images = []
