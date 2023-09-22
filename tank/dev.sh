@@ -1,1 +1,7 @@
-nodemon -I -w ~/repos/g1_tank/ -e py,sh -x ./run.sh 
+#!/usr/bin/env bash
+set -eou pipefail
+cleanup(){
+	reset
+}
+#trap cleanup EXIT
+nodemon -I -w . -e py,sh -x ./run.sh 

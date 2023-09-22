@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 [[ -d .d ]] || python3 -m venv .v
 source .v/bin/activate
+cleanup(){
+	reset
+}
+trap cleanup EXIT
 source get-device.sh
 ARDUINO_DEVICE="/dev/$(getdevice "$(./get-arduino-device-id.sh)")"
 GPS_DEVICE="/dev/$(getdevice "$(./get-gps-device-id.sh)")"

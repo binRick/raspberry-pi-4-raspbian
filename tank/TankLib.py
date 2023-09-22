@@ -23,12 +23,12 @@ class TankLib():
     SONAR_PIN = 23
     gimbal_y_pin = 9
     gimbal_x_pin = 11
-    GIMBAL_X_POS = 45
-    GIMBAL_Y_POS = 20
     GIMBAL_X_POS_MIN = 0
     GIMBAL_X_POS_MAX = 180
     GIMBAL_Y_POS_MIN = 0
     GIMBAL_Y_POS_MAX = 180
+    GIMBAL_X_POS = 80
+    GIMBAL_Y_POS = 30
 
     SONAR_ECHO = 0
     SONAR_TRIG = 1
@@ -135,8 +135,9 @@ class TankLib():
 
         # center sonar
         self.set_sonar_servo()
-        self.gimbal_y(self.GIMBAL_Y_POS)
-        self.gimbal_x(self.GIMBAL_X_POS)
+
+        self.set_gimbal_y(self.GIMBAL_Y_POS)
+        self.set_gimbal_x(self.GIMBAL_X_POS)
 
         # start positioning routine
         # self.tank_position = TankPosition()
@@ -308,7 +309,7 @@ class TankLib():
 
     def gimbal_x(self, amount): 
         self.gimbal_x_angle += amount
-        print(f"Changing gimbal to {self.gimbal_x_angle}")
+        print(f"Changing gimbal X to {self.gimbal_x_angle}")
         #Contraints
         if(self.gimbal_x_angle < self.GIMBAL_X_POS_MIN):
             self.gimbal_x_angle = self.GIMBAL_X_POS_MIN
@@ -320,17 +321,9 @@ class TankLib():
             time.sleep(0.02)
         self.pwm_gimbal_x.ChangeDutyCycle(0)            
 
-    def set_gimbal_x(self,pos):
-        print(f"Changing camera x to {pos}")
-        self.pwm_gimbal_x.ChangeDutyCycle(2.5+10 * pos/100)
-
-    def set_gimbal_y(self,pos):
-        print(f"Changing camera y to {pos}")
-        self.pwm_gimbal_y.ChangeDutyCycle(2.5+10 * pos/100)
-
     def gimbal_y(self, amount):  
         self.gimbal_y_angle += amount
-        print(f"Changing gimbal to {self.gimbal_y_angle}")
+        print(f"Changing gimbal Y to {self.gimbal_y_angle}")
         #Contraints
         if(self.gimbal_y_angle < self.GIMBAL_Y_POS_MIN):
             self.gimbal_y_angle = self.GIMBAL_Y_POS_MIN
@@ -341,6 +334,23 @@ class TankLib():
             time.sleep(0.02)
         self.pwm_gimbal_y.ChangeDutyCycle(0)            
         
+
+    def set_gimbal_x(self,pos):
+        print(f"Changing camera x to {pos}")
+        self.gimbal_y_angle = pos
+        for i in range(1):
+            self.pwm_gimbal_y.ChangeDutyCycle(2.5 + 10 * self.gimbal_y_angle/180)
+            time.sleep(0.02)
+        self.pwm_gimbal_y.ChangeDutyCycle(0)            
+
+    def set_gimbal_y(self,pos):
+        print(f"Changing camera y to {pos}")
+        self.gimbal_y_angle = pos
+        for i in range(1):
+            self.pwm_gimbal_y.ChangeDutyCycle(2.5 + 10 * self.gimbal_y_angle/180)
+            time.sleep(0.02)
+        self.pwm_gimbal_y.ChangeDutyCycle(0)            
+
     def beep(self, active_time:float):
         GPIO.output(self.buzzer_pin, GPIO.LOW)
         time.sleep(active_time)

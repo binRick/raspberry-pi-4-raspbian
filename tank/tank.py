@@ -19,10 +19,10 @@ def main():
     print(f'Initializing Tank')
     my_tank = TankLib()
     print(f'Initialized Tank')
-    my_tank.gimbal_x_angle = 40
-    my_tank.gimbal_y_angle = 0
-    my_tank.gimbal_y(0)
-    my_tank.gimbal_x(0)
+    #my_tank.gimbal_x_angle = 40
+    #my_tank.gimbal_y_angle = 0
+    #my_tank.gimbal_y(0)
+    #my_tank.gimbal_x(0)
     while True:
         char = getch()
         if(char == "a"):
