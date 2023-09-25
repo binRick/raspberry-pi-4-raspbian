@@ -1,7 +1,7 @@
-import RPi.GPIO as GPIO, time, typing, os, sys, json, threading, term
+import RPi.GPIO as GPIO, time, typing, os, sys, json, threading, term, queue
 from TankMath import sampler as sonar_sampler
 from TankPosition import TankPosition
-#from TankGPS import TankGPS
+from TankGPS import TankGPS
 
 class TankLib():
     IN1 = 20
@@ -20,7 +20,6 @@ class TankLib():
     led_g_pin = 27
     led_b_pin = 24 
     
-    SONAR_PIN = 23
     gimbal_y_pin = 9
     gimbal_x_pin = 11
     GIMBAL_X_POS_MIN = 0
@@ -30,9 +29,10 @@ class TankLib():
     GIMBAL_X_POS = 80
     GIMBAL_Y_POS = 30
 
+    #  SONAR
+    SONAR_PIN = 23
     SONAR_ECHO = 0
     SONAR_TRIG = 1
-
     SONAR_SWEEP = 5
     SONAR_START_POS = 45
     SONAR_SWEEP_ENABLED = False
@@ -46,6 +46,11 @@ class TankLib():
     SONAR_POLL_THREAD_ENABLED = None
     SONAR_POLL_SAMPLER = sonar_sampler(int(1/SONAR_POLL_INTERVAL*5), SONAR_MAX_DISTANCE_CM)
     SONAR_DISTANCES = {}
+    SONAR_QUEUE = queue.Queue()
+    SONAR_THREAD = None
+
+    #  GPS
+    GPS = None
 
     """
     #Infrared obstacle avoidance pin definition
@@ -136,12 +141,17 @@ class TankLib():
         # center sonar
         self.set_sonar_servo()
 
+        # center gimbal
         self.set_gimbal_y(self.GIMBAL_Y_POS)
         self.set_gimbal_x(self.GIMBAL_X_POS)
 
         # start positioning routine
         # self.tank_position = TankPosition()
         # self.position = self.tank_position.info()
+
+        #  GPS
+        #self.GPS = TankGPS()
+        #print(self.GPS.info())
         
     def start_sonar_sweep(self):
       self.poll_sonar_distance()
@@ -222,11 +232,19 @@ class TankLib():
         return self.SONAR_POS
 
     def set_sonar_servo(self):
-        print(f'sonar pos: {self.SONAR_POS}')
-        for i in range(1):
-            self.sonar_servo.ChangeDutyCycle(2.5+10 * self.SONAR_POS/100)
-            time.sleep(0.02)
-        self.sonar_servo.ChangeDutyCycle(0)            
+        self.SONAR_QUEUE.put(self.SONAR_POS)
+        if not self.SONAR_QUEUE:
+            self.SONAR_THREAD = threading.Thread(target=self._set_sonar_servo, daemon=True)
+            self.SONAR_THREAD.start()
+
+    def _set_sonar_servo(self):
+        while True:
+            pos = int(self.SONAR_QUEUE.get())
+            print(f'sonar pos: {pos}')
+            for i in range(1):
+                self.sonar_servo.ChangeDutyCycle(2.5+10 * pos/100)
+                #time.sleep(0.20)
+            #self.sonar_servo.ChangeDutyCycle(0)            
 
     def sonar_servo_left(self):
         self.SONAR_POS = self.SONAR_POS + self.SONAR_SWEEP

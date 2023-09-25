@@ -11,12 +11,14 @@ class BananaDetector(object):
     size = None
     input_mean = 128.0
     input_std = 128.0
-    count = 5
-    top_k = 10
+    count = 20
+    top_k = 100
     threshold = 0.0
     is_banana_threshold = 0.20
     _labels = 'labels/mobilenet_v1_0.75_192_quant_edgetpu.txt'
+    #_labels = 'labels/mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.txt'
     _model = 'models/mobilenet_v1_0.75_192_quant_edgetpu.tflite'
+    #_model = 'models/mobilenet_ssd_v2_coco_quant_postprocess_edgetpu.tflite'
     def __init__(self):
         print('banana detector setup')
         self.labels = read_label_file(self._labels) if self._labels else {}
@@ -61,7 +63,7 @@ def find_webcam_bananas(bd):
     qty = 0
     while True:
         ret, frame = vid.read()
-        #image = cv2.resize(frame, (320,240))
+        frame = cv2.resize(frame, (320,240))
         image = frame
         tf = './.tmp.png'
         cv2.imwrite(tf, image)

@@ -2,6 +2,7 @@
 [[ -d .d ]] || python3 -m venv .v
 source .v/bin/activate
 cleanup(){
+	true
 	reset
 }
 trap cleanup EXIT

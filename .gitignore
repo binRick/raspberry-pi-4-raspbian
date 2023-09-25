@@ -2,3 +2,4 @@
 */.v
 */*/__pycache__
 camera/*.png
+coral/edgetpu_runtime

@@ -1,3 +1,7 @@
-[[ -d .d ]] || python3 -m venv .v
+if [[ ! -d .d ]]; then
+	python3 -m venv .v
+	source setup.sh
+	./install.sh
+fi
 source .v/bin/activate
-pip install gpsd-py3
+
