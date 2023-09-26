@@ -19,15 +19,30 @@ class TankLib():
     led_r_pin = 22
     led_g_pin = 27
     led_b_pin = 24 
-    
-    gimbal_y_pin = 9
+ 
+    # GIMBAL X
     gimbal_x_pin = 11
+    GIMBAL_X_POS = 40
     GIMBAL_X_POS_MIN = 0
     GIMBAL_X_POS_MAX = 180
+    GIMBAL_X_THREAD = None
+    GIMBAL_X_LAST_UPDATE = None
+    GIMBAL_X_SET_STILL_AFTER = 0.50
+    GIMBAL_X_LOCK = threading.Lock()
+    GIMBAL_X_QUEUE = queue.Queue()
+    GIMBAL_X_SWEEP = 5
+
+    # GIMBAL Y
+    gimbal_y_pin = 9
     GIMBAL_Y_POS_MIN = 0
     GIMBAL_Y_POS_MAX = 180
-    GIMBAL_X_POS = 80
-    GIMBAL_Y_POS = 30
+    GIMBAL_Y_POS = 20
+    GIMBAL_Y_THREAD = None
+    GIMBAL_Y_LAST_UPDATE = None
+    GIMBAL_Y_SET_STILL_AFTER = 0.50
+    GIMBAL_Y_LOCK = threading.Lock()
+    GIMBAL_Y_QUEUE = queue.Queue()
+    GIMBAL_Y_SWEEP = 5
 
     #  SONAR
     SONAR_PIN = 23
@@ -48,6 +63,9 @@ class TankLib():
     SONAR_DISTANCES = {}
     SONAR_QUEUE = queue.Queue()
     SONAR_THREAD = None
+    SONAR_LAST_UPDATE = None
+    SONAR_SET_STILL_AFTER = 0.50
+    SONAR_LOCK = threading.Lock()
 
     #  GPS
     GPS = None
@@ -126,11 +144,11 @@ class TankLib():
         self.pwm_ENB.start(0)
         #Set the servo frequency and starting duty cycle
         #self.pwm_FrontServo = GPIO.PWM(front_servo_pin, 50)
-        self.pwm_gimbal_y = GPIO.PWM(self.gimbal_y_pin, 50)
-        self.pwm_gimbal_x = GPIO.PWM(self.gimbal_x_pin, 50)
+        self.gimbal_y_servo = GPIO.PWM(self.gimbal_y_pin, 50)
+        self.gimbal_x_servo = GPIO.PWM(self.gimbal_x_pin, 50)
         #self.pwm_FrontServo.start(0)
-        self.pwm_gimbal_y.start(0)
-        self.pwm_gimbal_x.start(0)
+        self.gimbal_y_servo.start(0)
+        self.gimbal_x_servo.start(0)
         self.pwm_r_led = GPIO.PWM(self.led_r_pin, 1000)
         self.pwm_g_led = GPIO.PWM(self.led_g_pin, 1000)
         self.pwm_b_led = GPIO.PWM(self.led_b_pin, 1000)
@@ -142,8 +160,15 @@ class TankLib():
         self.set_sonar_servo()
 
         # center gimbal
-        self.set_gimbal_y(self.GIMBAL_Y_POS)
-        self.set_gimbal_x(self.GIMBAL_X_POS)
+        self.set_gimbal_x_servo()
+        self.set_gimbal_y_servo()
+
+        # center gimbal
+        #self.set_gimbal_y(self.GIMBAL_Y_POS)
+        #self.set_gimbal_x(self.GIMBAL_X_POS)
+
+        # global servo vars
+        SERVO_MAX_SWEEP_TIME = 0.30
 
         # start positioning routine
         # self.tank_position = TankPosition()
@@ -233,18 +258,26 @@ class TankLib():
 
     def set_sonar_servo(self):
         self.SONAR_QUEUE.put(self.SONAR_POS)
-        if not self.SONAR_QUEUE:
+        self.SONAR_LAST_UPDATE = time.time()
+        if not self.SONAR_THREAD:
+            threading.Thread(target=self._set_sonar_still, daemon=True).start()
             self.SONAR_THREAD = threading.Thread(target=self._set_sonar_servo, daemon=True)
             self.SONAR_THREAD.start()
+
+    def _set_sonar_still(self):
+        while True:
+            with self.SONAR_LOCK:
+                if self.SONAR_LAST_UPDATE and (time.time() - self.SONAR_LAST_UPDATE) > self.SONAR_SET_STILL_AFTER:
+                    self.sonar_servo.ChangeDutyCycle(0)            
+            time.sleep(0.30)
 
     def _set_sonar_servo(self):
         while True:
             pos = int(self.SONAR_QUEUE.get())
-            print(f'sonar pos: {pos}')
+            print(f'\nsonar pos: {pos}')
             for i in range(1):
-                self.sonar_servo.ChangeDutyCycle(2.5+10 * pos/100)
-                #time.sleep(0.20)
-            #self.sonar_servo.ChangeDutyCycle(0)            
+                with self.SONAR_LOCK:
+                    self.sonar_servo.ChangeDutyCycle(2.5+10 * pos/100)
 
     def sonar_servo_left(self):
         self.SONAR_POS = self.SONAR_POS + self.SONAR_SWEEP
@@ -257,6 +290,76 @@ class TankLib():
         if self.SONAR_POS < self.SONAR_POS_MIN:
             self.SONAR_POS = self.SONAR_POS_MIN
         self.set_sonar_servo()
+
+    def gimbal_y_servo_left(self):
+        self.GIMBAL_Y_POS = self.GIMBAL_Y_POS + self.GIMBAL_Y_SWEEP
+        if self.GIMBAL_Y_POS > self.GIMBAL_Y_POS_MAX:
+            self.GIMBAL_Y_POS = self.GIMBAL_Y_POS_MAX
+        self.set_gimbal_y_servo()
+
+    def gimbal_y_servo_right(self):
+        self.GIMBAL_Y_POS = self.GIMBAL_Y_POS - self.GIMBAL_Y_SWEEP
+        if self.GIMBAL_Y_POS < self.GIMBAL_Y_POS_MIN:
+            self.GIMBAL_Y_POS = self.GIMBAL_Y_POS_MIN
+        self.set_gimbal_y_servo()
+
+    def _set_gimbal_y_still(self):
+        while True:
+            with self.GIMBAL_Y_LOCK:
+                if self.GIMBAL_Y_LAST_UPDATE and (time.time() - self.GIMBAL_Y_LAST_UPDATE) > self.GIMBAL_Y_SET_STILL_AFTER:
+                    self.gimbal_y_servo.ChangeDutyCycle(0)            
+            time.sleep(0.30)
+
+    def _set_gimbal_y_servo(self):
+        while True:
+            pos = int(self.GIMBAL_Y_QUEUE.get())
+            print(f'\ngimbal y pos: {pos}')
+            for i in range(1):
+                with self.GIMBAL_Y_LOCK:
+                    self.gimbal_y_servo.ChangeDutyCycle(2.5+10 * pos/100)
+
+    def set_gimbal_y_servo(self):
+        self.GIMBAL_Y_QUEUE.put(self.GIMBAL_Y_POS)
+        self.GIMBAL_Y_LAST_UPDATE = time.time()
+        if not self.GIMBAL_Y_THREAD:
+            threading.Thread(target=self._set_gimbal_y_still, daemon=True).start()
+            self.GIMBAL_Y_THREAD = threading.Thread(target=self._set_gimbal_y_servo, daemon=True)
+            self.GIMBAL_Y_THREAD.start()
+
+    def gimbal_x_servo_left(self):
+        self.GIMBAL_X_POS = self.GIMBAL_X_POS + self.GIMBAL_X_SWEEP
+        if self.GIMBAL_X_POS > self.GIMBAL_X_POS_MAX:
+            self.GIMBAL_X_POS = self.GIMBAL_X_POS_MAX
+        self.set_gimbal_x_servo()
+
+    def gimbal_x_servo_right(self):
+        self.GIMBAL_X_POS = self.GIMBAL_X_POS - self.GIMBAL_X_SWEEP
+        if self.GIMBAL_X_POS < self.GIMBAL_X_POS_MIN:
+            self.GIMBAL_X_POS = self.GIMBAL_X_POS_MIN
+        self.set_gimbal_x_servo()
+
+    def _set_gimbal_x_still(self):
+        while True:
+            with self.GIMBAL_X_LOCK:
+                if self.GIMBAL_X_LAST_UPDATE and (time.time() - self.GIMBAL_X_LAST_UPDATE) > self.GIMBAL_X_SET_STILL_AFTER:
+                    self.gimbal_x_servo.ChangeDutyCycle(0)            
+            time.sleep(0.30)
+
+    def _set_gimbal_x_servo(self):
+        while True:
+            pos = int(self.GIMBAL_X_QUEUE.get())
+            print(f'\ngimbal x pos: {pos}')
+            for i in range(1):
+                with self.GIMBAL_X_LOCK:
+                    self.gimbal_x_servo.ChangeDutyCycle(2.5+10 * pos/100)
+
+    def set_gimbal_x_servo(self):
+        self.GIMBAL_X_QUEUE.put(self.GIMBAL_X_POS)
+        self.GIMBAL_X_LAST_UPDATE = time.time()
+        if not self.GIMBAL_X_THREAD:
+            threading.Thread(target=self._set_gimbal_x_still, daemon=True).start()
+            self.GIMBAL_X_THREAD = threading.Thread(target=self._set_gimbal_x_servo, daemon=True)
+            self.GIMBAL_X_THREAD.start()
 
     def forward(self, active_time:float):
         GPIO.output(self.IN1, GPIO.HIGH)
@@ -325,49 +428,7 @@ class TankLib():
         GPIO.output(self.IN3, GPIO.LOW)
         GPIO.output(self.IN4, GPIO.LOW)
 
-    def gimbal_x(self, amount): 
-        self.gimbal_x_angle += amount
-        print(f"Changing gimbal X to {self.gimbal_x_angle}")
-        #Contraints
-        if(self.gimbal_x_angle < self.GIMBAL_X_POS_MIN):
-            self.gimbal_x_angle = self.GIMBAL_X_POS_MIN
-        if(self.gimbal_x_angle > self.GIMBAL_X_POS_MAX):
-            self.gimbal_x_angle = self.GIMBAL_X_POS_MAX
         
-        for i in range(1):
-            self.pwm_gimbal_x.ChangeDutyCycle(2.5 + 10 * self.gimbal_x_angle/180)
-            time.sleep(0.02)
-        self.pwm_gimbal_x.ChangeDutyCycle(0)            
-
-    def gimbal_y(self, amount):  
-        self.gimbal_y_angle += amount
-        print(f"Changing gimbal Y to {self.gimbal_y_angle}")
-        #Contraints
-        if(self.gimbal_y_angle < self.GIMBAL_Y_POS_MIN):
-            self.gimbal_y_angle = self.GIMBAL_Y_POS_MIN
-        if(self.gimbal_y_angle > self.GIMBAL_Y_POS_MAX):
-            self.gimbal_y_angle = self.GIMBAL_Y_POS_MAX
-        for i in range(1):
-            self.pwm_gimbal_y.ChangeDutyCycle(2.5 + 10 * self.gimbal_y_angle/180)
-            time.sleep(0.02)
-        self.pwm_gimbal_y.ChangeDutyCycle(0)            
-        
-
-    def set_gimbal_x(self,pos):
-        print(f"Changing camera x to {pos}")
-        self.gimbal_y_angle = pos
-        for i in range(1):
-            self.pwm_gimbal_y.ChangeDutyCycle(2.5 + 10 * self.gimbal_y_angle/180)
-            time.sleep(0.02)
-        self.pwm_gimbal_y.ChangeDutyCycle(0)            
-
-    def set_gimbal_y(self,pos):
-        print(f"Changing camera y to {pos}")
-        self.gimbal_y_angle = pos
-        for i in range(1):
-            self.pwm_gimbal_y.ChangeDutyCycle(2.5 + 10 * self.gimbal_y_angle/180)
-            time.sleep(0.02)
-        self.pwm_gimbal_y.ChangeDutyCycle(0)            
 
     def beep(self, active_time:float):
         GPIO.output(self.buzzer_pin, GPIO.LOW)

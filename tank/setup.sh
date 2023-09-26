@@ -1,4 +1,4 @@
-if [[ ! -d .d ]]; then
+if [[ ! -d .v ]]; then
 	python3 -m venv .v
 	source setup.sh
 	./install.sh

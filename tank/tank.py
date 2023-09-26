@@ -38,13 +38,17 @@ def main():
         elif(char == "b"):
             my_tank.beep(0.5)
         elif(char == "i"):
-            my_tank.gimbal_y(5)
+            #my_tank.gimbal_y(5)
+            my_tank.gimbal_y_servo_right()
         elif(char == "k"):
-            my_tank.gimbal_y(-5)
+            #my_tank.gimbal_y(-5)
+            my_tank.gimbal_y_servo_left()
         elif(char == "j"):
-            my_tank.gimbal_x(5)
+            my_tank.gimbal_x_servo_right()
+            #my_tank.gimbal_x(5)
         elif(char == "l"):
-            my_tank.gimbal_x(-5)
+            my_tank.gimbal_x_servo_left()
+            #my_tank.gimbal_x(-5)
         elif(char == "r"):
             my_tank.toggle_led()
         elif(char == "x"):
