@@ -3,7 +3,73 @@ from TankMath import sampler as sonar_sampler
 from TankPosition import TankPosition
 from TankGPS import TankGPS
 
-class TankLib():
+class ServoController(object):
+    PIN = 9
+    POS_MIN = 0
+    POS_MAX = 180
+    POS = 20
+    THREAD = None
+    LAST_UPDATE = None
+    SET_STILL_AFTER = 0.50
+    LOCK = threading.Lock()
+    QUEUE = queue.Queue()
+    SWEEP = 5
+    servo = None
+    SWEEP = 5
+
+    def __init__(self, pin=0, name=None, min=None, max=None, pos=None, sweep=None):
+        self.NAME = name
+        self.PIN = pin
+        if sweep:
+            self.SWEEP = sweep
+        if min:
+            self.POS_MIN = min
+        if max:
+            self.POS_MAX = min
+        if pos:
+            self.POS = pos
+        self.servo = GPIO.PWM(self.PIN, 50)
+        self.set_servo()
+
+    def get_servo(self):
+        return self.POS
+
+    def set_servo(self):
+        self.QUEUE.put(self.SONAR_POS)
+        self.LAST_UPDATE = time.time()
+        if not self.THREAD:
+            threading.Thread(target=self._set_still, daemon=True).start()
+            self.THREAD = threading.Thread(target=self._set_servo, daemon=True)
+            self.THREAD.start()
+
+    def _set_still(self):
+        while True:
+            with self.LOCK:
+                if self.LAST_UPDATE and (time.time() - self.LAST_UPDATE) > self.SET_STILL_AFTER:
+                    self.servo.ChangeDutyCycle(0)            
+            time.sleep(0.30)
+
+    def _set_servo(self):
+        while True:
+            pos = int(self.QUEUE.get())
+            print(f'\n{self.name} pos: {pos}')
+            for i in range(1):
+                with self.LOCK:
+                    self.servo.ChangeDutyCycle(2.5+10 * pos/100)
+
+    def left(self):
+        self.POS = self.POS + self.SONAR_SWEEP
+        if self.POS > self.POS_MAX:
+            self.POS = self.POS_MAX
+        self.set_servo()
+
+    def right(self):
+        self.POS = self.POS - self.SWEEP
+        if self.POS < self.POS_MIN:
+            self.POS = self.POS_MIN
+        self.set_servo()
+
+class TankLib(object):
     IN1 = 20
     IN2 = 21
     IN3 = 19
